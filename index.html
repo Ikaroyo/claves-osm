@@ -9,6 +9,24 @@
   <link rel="stylesheet" type="text/css" href="css/styles.css" />
   <link rel="stylesheet" href="css/navbar.css" />
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <script>
+    async function loadPage(url) {
+      const iframe = document.createElement("iframe");
+      iframe.src = "src/" + url;
+      iframe.style.width = "100%";
+      iframe.style.height = "100%";
+      iframe.style.display = "block";
+      iframe.style.margin = "0 auto";
+      iframe.style.border = "none";
+      document.getElementById("iframe-container").innerHTML = "";
+      document.getElementById("iframe-container").appendChild(iframe);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      loadPage("Extra/buscarClaves.html");
+    });
+
+  </script>
   <style>
     h1 {
       text-align: center;
@@ -25,6 +43,7 @@
 </head>
 
 <body>
+  <button onclick="loadPage('Extra/buscarClaves.html')">Buscar Claves</button>
   <nav class="navbar">
     <a href="" class="navbar-logo"><i class="material-icons"><img class="logo" src="src/logo-osm.png"
           alt="logo-osm" /></i></a>
