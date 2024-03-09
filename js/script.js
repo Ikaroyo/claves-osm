@@ -10,6 +10,6 @@ async function loadPage(url) {
   document.getElementById("iframe-container").appendChild(iframe);
 }
 
-window.onload = function () {
+document.addEventListener("DOMContentLoaded", function () {
   loadPage("Extra/buscarClaves.html");
-};
+});
