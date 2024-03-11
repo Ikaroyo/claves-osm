@@ -83,6 +83,34 @@ campoBusqueda.addEventListener("keyup", async function (event) {
   await hideLoader();
 });
 
+const botonBuscar = document.getElementById("buscar");
+const tablaEmision = document.getElementById("tablaEmision"); // assuming this is the id of your table
+botonBuscar.addEventListener("click", async function () {
+  const busqueda = document.getElementById("busqueda").value.toLowerCase();
+  if (busqueda === "") {
+    alert("Ingresa un valor a buscar");
+    return; // return early if the search input is empty
+  }
+  await showLoader();
+
+  const filas = tablaEmision.getElementsByTagName("tr");
+
+  // Iterar sobre cada fila de la tabla y ocultar las que no coinciden con la búsqueda
+  for (let i = 0; i < filas.length; i++) {
+    const fila = filas[i];
+    const celdaCuenta = fila.getElementsByTagName("td")[0];
+    const cuenta = celdaCuenta.textContent.toLowerCase();
+
+    if (cuenta.includes(busqueda)) {
+      fila.classList.remove("hidden");
+    } else {
+      fila.classList.add("hidden");
+    }
+  }
+
+  await hideLoader();
+});
+
 async function showLoader() {
   document.getElementById("loader").style.display = "block";
   await new Promise((resolve) => setTimeout(resolve, 1000));
