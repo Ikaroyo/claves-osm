@@ -1,4 +1,39 @@
 window.addEventListener("load", () => {
+  function loadCards(sender) {
+    const cardContent = document.getElementById("card-content");
+    const cardBackground = document.getElementById("card-background");
+    cardBackground.style.display = "flex";
+
+    // this function will be called when tr is clicked to get sender data which is from row of table
+    const td = sender.querySelectorAll("td");
+
+    // fill card content with data
+    /*
+          <h2>Cuenta</h2>
+      <p id="cuenta">0006448/000</p>
+      <h2>Usuario</h2>
+      <p id="usuario">PEREZ MARTIN</p>
+      <h2>Dirección</h2>
+      <p id="direccion">3 DE FEBRERO 215</p>
+      <h2>Clave</h2>
+      <p id="clave">100000006854</p>
+      <h2>Tipo Servicio</h2>
+      <p id="Tipo">Servicios Sanitarios</p>
+      */
+
+    const cuenta = document.getElementById("cuenta");
+    const usuario = document.getElementById("usuario");
+    const direccion = document.getElementById("direccion");
+    const clave = document.getElementById("clave");
+    const Tipo = document.getElementById("Tipo");
+
+    cuenta.textContent = td[0].textContent;
+    usuario.textContent = td[1].textContent;
+    direccion.textContent = td[2].textContent;
+    clave.textContent = td[4].textContent;
+    Tipo.textContent = td[7].textContent;
+  }
+
   document.getElementById("loader").style.display = "block";
 
   var request = new XMLHttpRequest();
@@ -15,6 +50,10 @@ window.addEventListener("load", () => {
         const tr = document.createElement("tr");
         // add Class hidden
         tr.classList.add("hidden");
+        // add onclick event to show card
+        tr.onclick = function () {
+          loadCards(this);
+        };
         const tdCuenta = document.createElement("td");
         tdCuenta.textContent = item[0];
         const tdUsuario = document.createElement("td");
