@@ -1,296 +1,267 @@
 <!DOCTYPE html>
 <html lang="es">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport"
-    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <title>Tabla de emisión</title>
-  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="extraerClaves/css/style.css">
-  <style>
-    .card-background {
-      display: none;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: rgba(0, 0, 0, 0.9);
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 4;
-    }
-
-    .card-content {
-      background-color: #fff;
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-      width: 400px;
-      height: 500px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      position: relative;
-      z-index: 9;
-    }
-
-    #card-logo {
-      width: 100px;
-      height: 100px;
-      object-fit: contain;
-      margin-top: 30px;
-      pointer-events: none;
-    }
-
-    h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-
-    h2 {
-      font-size: 20px;
-      margin-bottom: 5px;
-      pointer-events: none;
-    }
-
-    p {
-      font-size: 16px;
-      line-height: 1.5;
-      margin-bottom: 10px;
-      pointer-events: none;
-      text-transform: uppercase;
-    }
-
-    #close-button {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      cursor: pointer;
-      width: 30px;
-      height: 30px;
-      background-color: transparent;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    @keyframes loop {
-      0% {
-        transform: scale(1);
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Tabla de emisión</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="extraerClaves/css/style.css" />
+    <style>
+      .card-background {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.9);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 4;
       }
 
-      50% {
-        transform: scale(1.4);
+      .card-content {
+        background-color: #fff;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        width: 400px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        position: relative;
+        z-index: 9;
       }
 
-      100% {
-        transform: scale(1);
-      }
-    }
-
-    #close-button:hover {
-      animation: loop 1s infinite;
-    }
-
-    hr {
-      width: 100%;
-      height: 1px;
-      background-color: #ccc;
-      margin: 20px;
-
-    }
-
-    #toast {
-      display: none;
-      position: fixed;
-      top: 20px;
-      right: calc(50% - 200px);
-      width: 350px;
-      height: auto;
-
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-      z-index: 5;
-      animation: fadeIn 0.5s ease-out;
-      text-align: center;
-
-    }
-
-    @keyframes fadeIn {
-      0% {
-        opacity: 0;
-        transform: translateY(20px);
+      #card-logo {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+        margin-top: 30px;
+        pointer-events: none;
       }
 
-      100% {
-        opacity: 1;
-        transform: translateY(0);
+      h1 {
+        font-size: 24px;
+        margin-bottom: 10px;
       }
-    }
 
-    #clipboard {
-      position: absolute;
-      bottom: 80px;
-      right: 20px;
-      cursor: pointer;
-      width: 30px;
-      height: 30px;
-      background-color: transparent;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-    }
+      h2 {
+        font-size: 20px;
+        margin-bottom: 5px;
+        pointer-events: none;
+      }
 
-    #clipboard:hover {
-      animation: loop 1s infinite;
-    }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 10px;
+        pointer-events: none;
+        text-transform: uppercase;
+      }
 
-    #printer {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      cursor: pointer;
-      width: 30px;
-      height: 30px;
-      background-color: transparent;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+      #close-button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        background-color: transparent;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-    #printer:hover {
-      animation: loop 1s infinite;
-    }
-  </style>
-</head>
+      @keyframes loop {
+        0% {
+          transform: scale(1);
+        }
 
-<body>
-  <div class="container-busqueda">
-    <input type="text" id="busqueda" name="busqueda" placeholder="Ingresa el numero de cuenta 0000001/001" />
-    <input type="submit" id="buscar" value="Buscar" />
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Cuenta</th>
-        <th>Usuario</th>
-        <th>Dirección</th>
-        <th>Recibo</th>
-        <th>Clave Pago Electrónico</th>
-        <th>Archivo</th>
-        <th>Página</th>
-        <th>Tipo</th>
-      </tr>
-    </thead>
-    <tbody id="tablaEmision"></tbody>
-  </table>
+        50% {
+          transform: scale(1.4);
+        }
 
+        100% {
+          transform: scale(1);
+        }
+      }
 
-  <script src="extraerClaves/js/cargarClaves.js"></script>
+      #close-button:hover {
+        animation: loop 1s infinite;
+      }
 
-  <!-- Loader -->
-  <div id="loader" style="display: none;">
-    <div class="loader"></div>
-  </div>
-  <div id="card-background" class="card-background">
-    <div id="card-content" class="card-content">
+      hr {
+        width: 100%;
+        height: 1px;
+        background-color: #ccc;
+        margin: 20px;
+      }
 
-      <img id="card-logo" src="./extraerClaves/src/logo-osm.png" alt="">
-      <h2 style="border-bottom: 1px solid #ccc; padding-bottom: 10px; width: 80%;">Obras Sanitarias Mercedes</h2>
+      #toast {
+        display: none;
+        position: fixed;
+        top: 5px; /* Posición inicial fuera de la pantalla */
+        right: calc(50% - 200px);
+        width: 350px;
+        height: auto;
+        background-color: #fff5cb;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        z-index: 5;
+        animation: fadeIn 0.5s ease-out;
+        text-align: center;
+      }
 
-      <h2>Cuenta</h2>
-      <p id="cuenta"></p>
-      <h2>Usuario</h2>
-      <p id="usuario"></p>
-      <h2>Dirección</h2>
-      <p id="direccion"></p>
-      <h2>Clave Pago Electrónico</h2>
-      <!-- on click p clave select inner text-->
-      <p id="clave"></p>
-      <h2>Tipo Servicio</h2>
-      <p id="Tipo"></p>
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+          transform: translateY(-100%);
+        }
 
-      <div>
-        <img title="Cerrar" id="close-button" src="https://img.icons8.com/fluency/48/delete-sign.png"
-          alt="delete-sign" />
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      #clipboard {
+        position: absolute;
+        bottom: 80px;
+        right: 20px;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        background-color: transparent;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      #clipboard:hover {
+        animation: loop 1s infinite;
+      }
+
+      #printer {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        background-color: transparent;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #printer:hover {
+        animation: loop 1s infinite;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container-busqueda">
+      <input
+        type="text"
+        id="busqueda"
+        name="busqueda"
+        placeholder="Ingresa el numero de cuenta 0000001/001"
+      />
+      <input type="submit" id="buscar" value="Buscar" />
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Cuenta</th>
+          <th>Usuario</th>
+          <th>Dirección</th>
+          <th>Recibo</th>
+          <th>Clave Pago Electrónico</th>
+          <th>Archivo</th>
+          <th>Página</th>
+          <th>Tipo</th>
+        </tr>
+      </thead>
+      <tbody id="tablaEmision"></tbody>
+    </table>
+
+    <script src="extraerClaves/js/cargarClaves.js"></script>
+
+    <!-- Loader -->
+    <div id="loader" style="display: none">
+      <div class="loader"></div>
+    </div>
+    <div id="card-background" class="card-background">
+      <div id="card-content" class="card-content">
+        <img id="card-logo" src="./extraerClaves/src/logo-osm.png" alt="" />
+        <h2
+          style="
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+            width: 80%;
+          "
+        >
+          Obras Sanitarias Mercedes
+        </h2>
+
+        <h2>Cuenta</h2>
+        <p id="cuenta"></p>
+        <h2>Usuario</h2>
+        <p id="usuario"></p>
+        <h2>Dirección</h2>
+        <p id="direccion"></p>
+        <h2>Clave Pago Electrónico</h2>
+        <!-- on click p clave select inner text-->
+        <p id="clave"></p>
+        <h2>Tipo Servicio</h2>
+        <p id="Tipo"></p>
+
+        <div>
+          <img
+            title="Cerrar"
+            id="close-button"
+            src="https://img.icons8.com/fluency/48/delete-sign.png"
+            alt="delete-sign"
+          />
+        </div>
+
+        <img
+          title="Copiar al portapapeles"
+          id="clipboard"
+          src="https://img.icons8.com/stickers/100/clipboard.png"
+          alt="clipboard"
+        />
+        <img
+          title="Imprimir"
+          id="printer"
+          src="https://img.icons8.com/fluency/48/send-to-printer.png"
+          alt="send-to-printer"
+        />
+
+        <br />
       </div>
-
-      <img title="Copiar al portapapeles" id="clipboard" src="https://img.icons8.com/stickers/100/clipboard.png"
-        alt="clipboard" />
-      <img title="Imprimir" id="printer" src="https://img.icons8.com/fluency/48/send-to-printer.png"
-        alt="send-to-printer" />
-
-      <br>
     </div>
 
-  </div>
+    <div id="toast" class="toast"></div>
 
-  <div id="toast" class="toast">
-    <p>Informacion copiada al portapapeles</p>
-    <p>Presiona Ctrl+V para pegar la informacion</p>
-  </div>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const closebutton = document.getElementById("close-button");
-      const clipboard = document.getElementById("clipboard");
-      const printer = document.getElementById("printer");
-      const cardbackground = document.getElementById("card-background");
-      const cardcontent = document.getElementById("card-content");
-
-      printer.addEventListener("click", function () {
-        window.print();
-      })
-      /* hide close and clipboard button on print */
-      window.onbeforeprint = function () {
-        closebutton.style.display = "none";
-        clipboard.style.display = "none";
-        printer.style.display = "none";
-      };
-
-      /* after print show close and clipboard button */
-      window.onafterprint = function () {
-        closebutton.style.display = "block";
-        clipboard.style.display = "block";
-        printer.style.display = "block";
-      };
-
-      cardbackground.addEventListener("click", function (event) {
-        if (event.target !== cardcontent) {
-          document.querySelector(".card-background").style.display = "none";
-        }
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // on click close toast
       });
-
-
-      closebutton.addEventListener("click", function (event) {
-        document.querySelector(".card-background").style.display = "none";
-      });
-
-
-      clipboard.addEventListener("click", function (event) {
-
-        navigator.clipboard.writeText("Obras Sanitarias Mercedes\n" + "Cuenta: " + cuenta.textContent + "\n" + "Titular: " + usuario.textContent + "\n" + "Dirección: " + direccion.textContent + "\n" + "Clave Pago Electrónico: " + clave.textContent + "\n" + Tipo.textContent);
-        const toast = document.getElementById("toast");
-        toast.style.display = "block";
-        setTimeout(function () {
-          toast.style.display = "none";
-        }, 3000);
-      });
-    });
-  </script>
-
-
-</body>
-
+    </script>
+  </body>
 </html>

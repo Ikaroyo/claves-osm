@@ -1,4 +1,62 @@
 window.addEventListener("load", () => {
+  const closebutton = document.getElementById("close-button");
+  const clipboard = document.getElementById("clipboard");
+  const printer = document.getElementById("printer");
+  const cardbackground = document.getElementById("card-background");
+  const cardcontent = document.getElementById("card-content");
+
+  printer.addEventListener("click", function () {
+    window.print();
+  });
+  /* hide close and clipboard button on print */
+  window.onbeforeprint = function () {
+    closebutton.style.display = "none";
+    clipboard.style.display = "none";
+    printer.style.display = "none";
+  };
+
+  /* after print show close and clipboard button */
+  window.onafterprint = function () {
+    closebutton.style.display = "block";
+    clipboard.style.display = "block";
+    printer.style.display = "block";
+  };
+
+  cardbackground.addEventListener("click", function (event) {
+    if (event.target !== cardcontent) {
+      document.querySelector(".card-background").style.display = "none";
+    }
+  });
+
+  closebutton.addEventListener("click", function (event) {
+    document.querySelector(".card-background").style.display = "none";
+  });
+
+  clipboard.addEventListener("click", function (event) {
+    navigator.clipboard.writeText(
+      "Obras Sanitarias Mercedes\n" +
+        "Cuenta: " +
+        cuenta.textContent +
+        "\n" +
+        "Titular: " +
+        usuario.textContent +
+        "\n" +
+        "Dirección: " +
+        direccion.textContent +
+        "\n" +
+        "Clave Pago Electrónico: " +
+        clave.textContent +
+        "\n" +
+        Tipo.textContent
+    );
+    const toast = document.getElementById("toast");
+    toast.style.display = "block";
+    toast.innerHTML = "<p>Informacion copiada al portapapeles</p>";
+    toast.innerHTML += "<p>Presiona Ctrl+V para pegar la informacion</p>";
+    setTimeout(function () {
+      toast.style.display = "none";
+    }, 3000);
+  });
   function loadCards(sender) {
     const cardContent = document.getElementById("card-content");
     const cardBackground = document.getElementById("card-background");
@@ -43,7 +101,12 @@ window.addEventListener("load", () => {
     if (request.status == 200) {
       var data = JSON.parse(request.responseText);
     } else {
-      alert("Error al cargar el archivo JSON");
+      const toast = document.getElementById("toast");
+      toast.style.display = "block";
+      toast.innerHTML = "Error al cargar el archivo JSON";
+      setTimeout(function () {
+        toast.style.display = "none";
+      }, 3000);
     }
     if (data) {
       for (const item of data.data) {
@@ -99,7 +162,12 @@ campoBusqueda.addEventListener("keyup", async function (event) {
   if (event.key === "Enter") {
     const busqueda = event.target.value.toLowerCase();
     if (busqueda === "") {
-      alert("Ingresa un valor a buscar");
+      const toast = document.getElementById("toast");
+      toast.style.display = "block";
+      toast.innerHTML = "Ingresa un valor a buscar";
+      setTimeout(function () {
+        toast.style.display = "none";
+      }, 3000);
     } else {
       await showLoader();
 
@@ -127,7 +195,12 @@ const tablaEmision = document.getElementById("tablaEmision"); // assuming this i
 botonBuscar.addEventListener("click", async function () {
   const busqueda = document.getElementById("busqueda").value.toLowerCase();
   if (busqueda === "") {
-    alert("Ingresa un valor a buscar");
+    const toast = document.getElementById("toast");
+    toast.style.display = "block";
+    toast.innerHTML = "Ingresa un valor a buscar";
+    setTimeout(function () {
+      toast.style.display = "none";
+    }, 3000);
     return; // return early if the search input is empty
   }
   await showLoader();
