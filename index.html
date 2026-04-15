@@ -323,10 +323,17 @@
             const hideNoKey = hideNoKeyFilter.checked;
 
             filteredData = allData.filter(row => {
-                const matchesGlobal = searchTerm === '' || row.some(f => f?.toString().toLowerCase().includes(searchTerm));
+                // Búsqueda global: solo en Cuenta (0), Nombre (1), Dirección (2) y Clave (4)
+                const matchesGlobal = searchTerm === '' || [0, 1, 2, 4].some(idx => row[idx]?.toString().toLowerCase().includes(searchTerm));
+                
                 let matchesField = true;
                 if (fieldTerm !== '') {
-                    matchesField = fieldIdx === 'all' ? row.some(f => f?.toString().toLowerCase().includes(fieldTerm)) : row[fieldIdx]?.toString().toLowerCase().includes(fieldTerm);
+                    // Búsqueda por campo: si es 'all', buscar solo en los campos permitidos
+                    if (fieldIdx === 'all') {
+                        matchesField = [0, 1, 2, 4].some(idx => row[idx]?.toString().toLowerCase().includes(fieldTerm));
+                    } else {
+                        matchesField = row[fieldIdx]?.toString().toLowerCase().includes(fieldTerm);
+                    }
                 }
                 const matchesService = service === 'all' || row[7] === service;
                 const keyText = row[4]?.toString().trim().toUpperCase() || '';

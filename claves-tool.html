@@ -202,8 +202,23 @@
         const REGEX_RECIBO_2 = /\b(\d{4}-\d{8})\b/;
         const REGEX_RECIBO_3 = /Recibo:\s*(\d{3,4}-\d{5,8})/i;
         const REGEX_CLAVE = /CLAVE\s+LINK\s+(\d+)/i;
-        const REGEX_USUARIO = /Prov\.:SAN\s*LUIS\s+(.+?)\s+(?:Pl|CLAVE|100-|340-)/i;
+        const REGEX_USUARIO = /Prov\.\s*:.*?SAN\s+LUI[S]?\s+(.+?)(?:\s+Pl\s+\d{3}-|\s+Piso:|\s+CLAVE|\s+Cta\s+\d)/i;
         const REGEX_DIRECCION = /CUIT:\s+(.+?)\s+\(5730\)/i;
+        
+        function extraerNombreTitular(fullText) {
+            let nombreTitular = "DESCONOCIDO";
+            const usuarioMatch = fullText.match(REGEX_USUARIO);
+            if (usuarioMatch) {
+                // Limpiar espacios múltiples, trim, y tomar solo las primeras 2-3 palabras
+                let nombre = usuarioMatch[1].trim().replace(/\s+/g, ' ');
+                // Si el nombre contiene números separados entre paréntesis, mantenerlo, pero limpar excesos
+                // Limitar a máximo 60 caracteres para evitar capturas largas
+                if (nombre.length <= 60) {
+                    nombreTitular = nombre;
+                }
+            }
+            return nombreTitular;
+        }
 
         const folderInput = document.getElementById('folderInput');
         const logContainer = document.getElementById('contentLog');
@@ -304,12 +319,8 @@
                 const claveMatch = fullText.match(REGEX_CLAVE);
                 let claveLink = claveMatch ? claveMatch[1] : "SIN CLAVE";
 
-                // 4. Titular (usar regex compilada)
-                let nombreTitular = "DESCONOCIDO";
-                const usuarioMatch = fullText.match(REGEX_USUARIO);
-                if (usuarioMatch) {
-                    nombreTitular = usuarioMatch[1].trim();
-                }
+                // 4. Titular (usar función dedicada)
+                let nombreTitular = extraerNombreTitular(fullText);
 
                 // 5. Dirección (usar regex compilada)
                 let direccion = "VILLA MERCEDES";
