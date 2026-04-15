@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSM - Extractor de Emisión Oficial Pro</title>
+    <link rel="icon" type="image/png" href="resources/logo-title.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .osm-gradient { background: linear-gradient(135deg, #004a99 0%, #003366 100%); }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .tab-active { border-bottom: 3px solid #0056b3; color: #0056b3; font-weight: 800; }
+        .log-entry { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .debug-text { font-family: 'Courier New', Courier, monospace; font-size: 10px; line-height: 1.2; white-space: pre-wrap; word-break: break-all; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="osm-gradient text-white shadow-xl py-4 border-b-4 border-yellow-400">
+        <div class="container mx-auto px-6 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="bg-white p-2 rounded-xl shadow-lg">
+                    <img src="resources/logo-osm.png" alt="Logo" class="h-10 md:h-12 w-auto" onerror="this.src='https://via.placeholder.com/50?text=OSM'">
+                </div>
+                <div>
+                    <h1 class="text-xl font-black uppercase tracking-tight leading-none text-white">Extractor OSM Pro</h1>
+                    <p class="text-[10px] font-bold text-blue-200 uppercase tracking-widest mt-1">Lógica Períodos y Recibos v10.0</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p id="totalKeys" class="text-2xl font-black text-yellow-400 leading-none">0</p>
+                <p class="text-[9px] uppercase font-bold opacity-70">Registros en el JSON</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 flex-grow grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- PANEL LATERAL -->
+        <div class="lg:col-span-1 space-y-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-xs font-black text-slate-400 uppercase mb-4 flex items-center gap-2">
+                    <i data-lucide="folder-search" class="w-4 h-4 text-blue-600"></i>
+                    Origen de Datos
+                </h2>
+                
+                <div class="space-y-3">
+                    <label class="group block border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-6 transition-all cursor-pointer text-center bg-slate-50">
+                        <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
+                        <i data-lucide="file-up" class="w-8 h-8 mx-auto text-slate-300 group-hover:text-blue-500 mb-2 transition-colors"></i>
+                        <span id="uploadText" class="block text-[10px] font-black text-slate-500 uppercase">Cargar Carpeta de Emisión</span>
+                    </label>
+
+                    <div id="processingControls" class="hidden space-y-2">
+                        <button onclick="startExtraction()" id="btnStart" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
+                            <i data-lucide="zap" class="w-4 h-4"></i> PROCESAR PDFs
+                        </button>
+                        <button onclick="downloadJson()" id="btnDownload" disabled class="w-full bg-slate-800 hover:bg-black text-white font-black py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-20">
+                            <i data-lucide="download" class="w-4 h-4"></i> DESCARGAR JSON
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                            <label class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                                <input type="checkbox" id="enableDebug" class="w-4 h-4 accent-red-600 cursor-pointer">
+                                <span class="text-[9px] font-black text-slate-600 uppercase">Debug</span>
+                            </label>
+                            <label class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                                <input type="checkbox" id="enableLogs" class="w-4 h-4 accent-blue-600 cursor-pointer">
+                                <span class="text-[9px] font-black text-slate-600 uppercase">Logs</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest text-center">Resumen de Análisis</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500">Únicos:</span>
+                        <span id="statUniques" class="font-black text-blue-600 text-lg">0</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-50 pt-2">
+                        <span class="text-xs font-bold text-slate-500 text-orange-500">Duplicados Omitidos:</span>
+                        <span id="statDupes" class="font-black text-orange-500 text-lg">0</span>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-blue-50 rounded-xl">
+                    <p class="text-[8px] text-blue-700 font-bold uppercase leading-tight">
+                        Regla Aplicada: Mismo recibo o período se guarda como nuevo si la clave varía o está ausente.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL CENTRAL -->
+        <div class="lg:col-span-3 flex flex-col h-[750px] bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            
+            <div class="flex border-b border-slate-100 bg-slate-50/80 overflow-x-auto custom-scroll">
+                <button onclick="switchTab('log')" id="tabLog" class="px-6 py-4 text-[10px] font-black uppercase tracking-widest tab-active whitespace-nowrap">Monitor</button>
+                <button onclick="switchTab('preview')" id="tabPreview" class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">Resultados (JSON)</button>
+                <button onclick="switchTab('dupes')" id="tabDupes" class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">Duplicados Reales</button>
+                <button onclick="switchTab('debug')" id="tabDebug" class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-red-400 whitespace-nowrap bg-red-50/50">DEPURACIÓN (TEXTO)</button>
+            </div>
+
+            <div id="searchContainer" class="hidden p-4 border-b border-slate-50">
+                <div class="relative">
+                    <input type="text" id="internalSearch" onkeyup="filterTables()" placeholder="Buscar en resultados..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-300"></i>
+                </div>
+            </div>
+
+            <div class="flex-grow overflow-hidden relative">
+                
+                <!-- MONITOR -->
+                <div id="contentLog" class="absolute inset-0 p-6 overflow-y-auto custom-scroll space-y-1 bg-white">
+                    <div class="flex items-center justify-center h-full text-slate-300 flex-col gap-3 opacity-30 text-center">
+                        <i data-lucide="terminal" class="w-16 h-16"></i>
+                        <p class="text-[10px] font-black uppercase tracking-widest">Listo para procesar PDFs</p>
+                    </div>
+                </div>
+
+                <!-- RESULTADOS -->
+                <div id="contentPreview" class="absolute inset-0 hidden overflow-hidden flex flex-col">
+                    <div class="overflow-auto custom-scroll flex-grow">
+                        <table class="w-full text-left text-[11px] border-collapse" id="tablePreview">
+                            <thead class="sticky top-0 bg-slate-100 text-slate-500 font-black uppercase tracking-tighter border-b border-slate-200 z-10">
+                                <tr>
+                                    <th class="p-3">Cuenta</th>
+                                    <th class="p-3">Titular</th>
+                                    <th class="p-3">Dirección Inmueble</th>
+                                    <th class="p-3">Recibo</th>
+                                    <th class="p-3">Clave Link</th>
+                                    <th class="p-3">Pág</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewBody" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- DUPLICADOS -->
+                <div id="contentDupes" class="absolute inset-0 hidden overflow-hidden flex flex-col">
+                    <div class="overflow-auto custom-scroll flex-grow">
+                        <table class="w-full text-left text-[11px] border-collapse" id="tableDupes">
+                            <thead class="sticky top-0 bg-orange-50 text-orange-600 font-black uppercase tracking-tighter border-b border-orange-100 z-10">
+                                <tr>
+                                    <th class="p-3">Cuenta</th>
+                                    <th class="p-3">Titular</th>
+                                    <th class="p-3">Recibo / Clave</th>
+                                    <th class="p-3">Conflicto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dupesBody" class="divide-y divide-orange-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- DEPURACIÓN -->
+                <div id="contentDebug" class="absolute inset-0 hidden p-6 overflow-y-auto custom-scroll bg-slate-900 text-slate-300">
+                    <div id="debugContent" class="debug-text">
+                        --- Los datos crudos del PDF aparecerán aquí ---
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER -->
+            <div class="p-3 bg-slate-50 border-t border-slate-100">
+                <div class="flex justify-between items-center mb-1 px-1">
+                    <span id="progressPercent" class="text-[9px] font-black text-blue-600 font-mono">0.00%</span>
+                    <span id="currentStatus" class="text-[9px] font-bold text-slate-400 truncate max-w-[350px]">Cargue una carpeta</span>
+                </div>
+                <div class="h-1.5 bg-slate-200 w-full rounded-full overflow-hidden">
+                    <div id="progressBar" class="h-full bg-blue-600 transition-all duration-300 w-0"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let filesInQueue = [];
+        let extractedData = new Map(); 
+        let duplicateEntries = [];
+
+        // === CONFIGURACIÓN DE OPTIMIZACIÓN ===
+        let enableDebug = false;
+        let enableLogs = false;
+
+        // === REGEX COMPILADAS (compiladas una sola vez) ===
+        const REGEX_CUENTA = /\b(\d{7}\/\d{3})\b/;
+        const REGEX_RECIBO_1 = /Pl\s+(\d{3}-\d{7,8})/i;
+        const REGEX_RECIBO_2 = /\b(\d{4}-\d{8})\b/;
+        const REGEX_RECIBO_3 = /Recibo:\s*(\d{3,4}-\d{5,8})/i;
+        const REGEX_CLAVE = /CLAVE\s+LINK\s+(\d+)/i;
+        const REGEX_USUARIO = /Prov\.:SAN\s*LUIS\s+(.+?)\s+(?:Pl|CLAVE|100-|340-)/i;
+        const REGEX_DIRECCION = /CUIT:\s+(.+?)\s+\(5730\)/i;
+
+        const folderInput = document.getElementById('folderInput');
+        const logContainer = document.getElementById('contentLog');
+        const debugContent = document.getElementById('debugContent');
+        const progressBar = document.getElementById('progressBar');
+        const totalKeysEl = document.getElementById('totalKeys');
+        const previewBody = document.getElementById('previewBody');
+        const dupesBody = document.getElementById('dupesBody');
+        const enableDebugCheckbox = document.getElementById('enableDebug');
+        const enableLogsCheckbox = document.getElementById('enableLogs');
+
+        lucide.createIcons();
+
+        enableDebugCheckbox.addEventListener('change', (e) => {
+            enableDebug = e.target.checked;
+        });
+
+        enableLogsCheckbox.addEventListener('change', (e) => {
+            enableLogs = e.target.checked;
+        });
+
+        folderInput.addEventListener('change', (e) => {
+            filesInQueue = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+            if (filesInQueue.length > 0) {
+                document.getElementById('processingControls').classList.remove('hidden');
+                document.getElementById('uploadText').innerText = `${filesInQueue.length} PDFs CARGADOS`;
+            }
+        });
+
+        async function startExtraction() {
+            document.getElementById('btnStart').disabled = true;
+            logContainer.innerHTML = '';
+            debugContent.innerHTML = '';
+            extractedData.clear();
+            duplicateEntries = [];
+
+            for (let i = 0; i < filesInQueue.length; i++) {
+                const file = filesInQueue[i];
+                const progress = ((i + 1) / filesInQueue.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                document.getElementById('progressPercent').innerText = `${progress.toFixed(2)}%`;
+                document.getElementById('currentStatus').innerText = `Procesando: ${file.name}`;
+                try {
+                    await processPdf(file);
+                } catch (err) {
+                    updateLog(`ERROR: ${file.name} - ${err.message}`, 'error');
+                }
+            }
+
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnDownload').disabled = false;
+            updateLog(`OPERACIÓN FINALIZADA. REGISTROS: ${extractedData.size}`, 'success');
+            updateStats();
+            renderTables();
+            lucide.createIcons();
+        }
+
+        async function processPdf(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const page = await pdf.getPage(p);
+                const textContent = await page.getTextContent();
+                const items = textContent.items;
+                const fullText = items.map(item => item.str).join("  ");
+                
+                // Debug log raw text - SOLO SI ESTÁ ACTIVO
+                if (enableDebug) {
+                    const debugEntry = document.createElement('div');
+                    debugEntry.className = "mb-6 border-b border-slate-700 pb-2";
+                    debugEntry.innerHTML = `<span class="text-yellow-400">[${file.name} | Pág ${p}]</span>\n${fullText}`;
+                    debugContent.appendChild(debugEntry);
+                }
+
+                // 1. Cuenta (usar regex compilada)
+                const cuentaMatch = fullText.match(REGEX_CUENTA);
+                const cuentaStr = cuentaMatch ? cuentaMatch[1] : null;
+
+                // 2. Recibo (usar regex compiladas - intentar en orden)
+                let numeroRecibo = `PAG-${p}`;
+                let reciboMatch = fullText.match(REGEX_RECIBO_1);
+                if (reciboMatch) {
+                    numeroRecibo = reciboMatch[1];
+                } else {
+                    reciboMatch = fullText.match(REGEX_RECIBO_2);
+                    if (reciboMatch) {
+                        numeroRecibo = reciboMatch[1];
+                    } else {
+                        reciboMatch = fullText.match(REGEX_RECIBO_3);
+                        if (reciboMatch) {
+                            numeroRecibo = reciboMatch[1];
+                        }
+                    }
+                }
+
+                // 3. Clave Link (usar regex compilada)
+                const claveMatch = fullText.match(REGEX_CLAVE);
+                let claveLink = claveMatch ? claveMatch[1] : "SIN CLAVE";
+
+                // 4. Titular (usar regex compilada)
+                let nombreTitular = "DESCONOCIDO";
+                const usuarioMatch = fullText.match(REGEX_USUARIO);
+                if (usuarioMatch) {
+                    nombreTitular = usuarioMatch[1].trim();
+                }
+
+                // 5. Dirección (usar regex compilada)
+                let direccion = "VILLA MERCEDES";
+                const direccionMatch = fullText.match(REGEX_DIRECCION);
+                if (direccionMatch) {
+                    direccion = direccionMatch[1].trim();
+                } else {
+                    const inicioDir = "JGIMENEZ";
+                    const finDir = "Piso:";
+                    const startIdx = fullText.indexOf(inicioDir);
+                    const endIdx = fullText.indexOf(finDir);
+                    if (startIdx !== -1 && endIdx > startIdx) {
+                        direccion = fullText.slice(startIdx + inicioDir.length, endIdx).trim();
+                    }
+                }
+
+                if (cuentaStr) {
+                    // --- LÓGICA DE UNIFICACIÓN INTELIGENTE ---
+                    let identityId = "";
+                    
+                    if (claveLink !== "SIN CLAVE") {
+                        // REGLA 1: Si hay clave, la identidad es Cuenta + Clave.
+                        identityId = `KV_${cuentaStr}_${claveLink}`;
+                    } else {
+                        // REGLA 2: Si no hay clave, la identidad es Cuenta + Recibo (para capturar períodos distintos).
+                        identityId = `NK_${cuentaStr}_${numeroRecibo}`;
+                    }
+                    
+                    if (extractedData.has(identityId)) {
+                        duplicateEntries.push({ 
+                            cuenta: cuentaStr, 
+                            titular: nombreTitular, 
+                            valor: claveLink !== "SIN CLAVE" ? claveLink : numeroRecibo,
+                            motivo: "Este período/clave ya existe en la base de datos" 
+                        });
+                    } else {
+                        extractedData.set(identityId, [
+                            cuentaStr,
+                            nombreTitular,
+                            direccion,
+                            numeroRecibo,
+                            claveLink,
+                            file.name,
+                            p.toString(),
+                            getDescripcion(file.name)
+                        ]);
+                        updateLog(`CAPTURADO: ${cuentaStr} - ${nombreTitular}`, 'entry');
+                    }
+                }
+            }
+            totalKeysEl.innerText = extractedData.size;
+        }
+
+        function getDescripcion(archivo) {
+            const name = archivo.toUpperCase();
+            if (name.startsWith("PPG")) return "Plan de pago";
+            if (name.startsWith("SC")) return "Comercial";
+            if (name.startsWith("SS")) return "Sanitario";
+            return "General";
+        }
+
+        function updateLog(msg, type) {
+            if (!enableLogs) return;  // Salir si logs están desactivados
+            
+            const div = document.createElement('div');
+            let style = "text-slate-500 border-l-2 border-slate-200 pl-3";
+            if (type === 'error') style = "text-red-500 bg-red-50 p-2 rounded border-l-4 border-red-500 font-bold";
+            if (type === 'success') style = "text-green-600 bg-green-50 p-2 rounded border-l-4 border-green-500 font-bold";
+            if (type === 'entry') style = "text-blue-600 bg-blue-50/50 p-1 px-2 rounded";
+            div.className = `log-entry text-[10px] py-1 ${style}`;
+            div.innerText = msg;
+            logContainer.prepend(div);
+        }
+
+        function switchTab(tab) {
+            ['log', 'preview', 'dupes', 'debug'].forEach(t => {
+                document.getElementById(`content${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('hidden', t !== tab);
+                document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`).className = t === tab ? 
+                    "px-6 py-4 text-[10px] font-black uppercase tracking-widest tab-active" : 
+                    "px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400";
+            });
+            document.getElementById('searchContainer').classList.toggle('hidden', tab === 'log' || tab === 'debug');
+        }
+
+        function renderTables() {
+            previewBody.innerHTML = '';
+            const sortedData = Array.from(extractedData.values()).sort((a, b) => a[0].localeCompare(b[0]));
+            
+            sortedData.forEach((val) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-blue-600 whitespace-nowrap">${val[0]}</td>
+                    <td class="p-3 font-black text-slate-800 uppercase">${val[1]}</td>
+                    <td class="p-3 text-slate-500 text-[10px] uppercase truncate max-w-[200px]">${val[2]}</td>
+                    <td class="p-3 text-slate-400 text-[10px]">${val[3]}</td>
+                    <td class="p-3 font-mono ${val[4] === 'SIN CLAVE' ? 'text-red-400 italic' : 'text-slate-900 font-bold'}">${val[4]}</td>
+                    <td class="p-3 text-[9px] font-black text-slate-400">${val[6]}</td>
+                `;
+                previewBody.appendChild(tr);
+            });
+
+            dupesBody.innerHTML = '';
+            duplicateEntries.forEach((dupe) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-3 font-bold text-orange-600">${dupe.cuenta}</td><td class="p-3 uppercase font-bold text-slate-600">${dupe.titular}</td><td class="p-3 text-slate-400">${dupe.valor}</td><td class="p-3"><span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-black uppercase text-[8px]">${dupe.motivo}</span></td>`;
+                dupesBody.appendChild(tr);
+            });
+        }
+
+        function filterTables() {
+            const term = document.getElementById('internalSearch').value.toLowerCase();
+            const activeTab = document.getElementById('tabPreview').classList.contains('tab-active') ? 'previewBody' : 'dupesBody';
+            const rows = document.getElementById(activeTab).getElementsByTagName('tr');
+            for (let row of rows) { row.style.display = row.innerText.toLowerCase().includes(term) ? "" : "none"; }
+        }
+
+        function updateStats() {
+            document.getElementById('statUniques').innerText = extractedData.size;
+            document.getElementById('statDupes').innerText = duplicateEntries.length;
+        }
+
+        function downloadJson() {
+            const data = { data: Array.from(extractedData.values()) };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'claves.json'; a.click();
+        }
+    </script>
+</body>
+</html>

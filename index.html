@@ -1,57 +1,532 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>PE-OSM Toolbox</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="src/logo-title.png" />
-  <link rel="stylesheet" type="text/css" href="css/styles.css" />
-  <link rel="stylesheet" href="css/navbar.css" />
-  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-  <script>
-    async function loadPage(url) {
-      const iframe = document.createElement("iframe");
-      iframe.src = "src/" + url;
-      iframe.style.width = "100%";
-      iframe.style.height = "100%";
-      iframe.style.display = "block";
-      iframe.style.margin = "0 auto";
-      iframe.style.border = "none";
-      document.getElementById("iframe-container").innerHTML = "";
-      document.getElementById("iframe-container").appendChild(iframe);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OSM - Buscador de Claves Pro</title>
+    <!-- Favicon con logo-title.png -->
+    <link rel="icon" type="image/png" href="resources/logo-title.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    document.addEventListener("DOMContentLoaded", function () {
-      loadPage("EXTRA/buscarClaves.html");
-    });
+        .osm-blue { background-color: #0056b3; }
+        .osm-text-blue { color: #0056b3; }
+        .osm-gradient { background: linear-gradient(135deg, #004a99 0%, #003366 100%); }
 
-  </script>
-  <style>
-    .navbar:hover {
-      cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      /* Sombra suave al hacer hover */
-      border-radius: 5px;
-      /* Redondear bordes */
-      transition: all 0.3s ease;
-      /* Transición suave */
-      color: #000;
-    }
-  </style>
+        /* Estilos de Impresión */
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; margin: 0; padding: 0; }
+            .card-print {
+                width: 100%;
+                max-width: 500px;
+                margin: 0 auto;
+                padding: 35px;
+                border: 1px solid #e2e8f0;
+                border-radius: 16px;
+                color: #1e293b;
+            }
+        }
 
+        .print-only { display: none; }
+
+        /* Scroll Personalizado */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #0056b3; border-radius: 10px; }
+
+        /* Transiciones */
+        .clave-card, .clave-row {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @media (hover: hover) {
+            .clave-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        .active-view {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        /* Area de Captura (Oculta) */
+        #captureArea {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 550px;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Colapsable animado */
+        #filterContent {
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-in;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+        }
+        #filterContent.open {
+            max-height: 500px;
+            opacity: 1;
+            padding-bottom: 1rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            input, select {
+                font-size: 16px !important;
+            }
+        }
+    </style>
 </head>
+<body class="min-h-screen flex flex-col overflow-x-hidden">
 
-<body>
-  <nav class="navbar">
-    <a href="" class="navbar-logo"><i class="material-icons"><img class="logo" src="src/logo-osm.png"
-          alt="logo-osm" /></i></a>
-    <h1>Claves Pago Electronico</h1>
-  </nav>
+    <!-- CABECERA INSTITUCIONAL -->
+    <header class="osm-gradient text-white shadow-2xl no-print sticky top-0 z-50 border-b-4 border-yellow-400">
+        <div class="container mx-auto px-4 md:px-6 py-3 md:py-4 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+            
+            <div class="flex items-center gap-3 md:gap-5 w-full md:w-auto">
+                <div class="bg-white p-1.5 md:p-2 rounded-xl md:rounded-2xl shadow-lg flex-shrink-0">
+                    <img src="resources/logo-osm.png" alt="Logo OSM" class="h-10 md:h-16 w-auto" onerror="this.src='https://via.placeholder.com/80?text=OSM'">
+                </div>
+                <div class="flex flex-col">
+                    <h1 class="text-lg md:text-2xl font-black tracking-tight leading-none uppercase">Obras Sanitarias Mercedes</h1>
+                    <p class="text-[8px] md:text-[10px] font-bold text-blue-200 tracking-[0.1em] md:tracking-[0.2em] uppercase mt-0.5 md:mt-1 flex items-center gap-1 md:gap-2">
+                        Visor de Claves Electrónicas
+                    </p>
+                </div>
+            </div>
 
-  <div id="iframe-container"></div>
+            <div class="relative w-full md:w-[450px]">
+                <input type="text" id="searchInput" 
+                    placeholder="Búsqueda rápida..." 
+                    class="w-full pl-10 md:pl-12 pr-4 md:pr-6 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl border-none text-gray-800 shadow-2xl focus:ring-4 focus:ring-yellow-400/50 outline-none transition-all text-base md:text-lg font-medium">
+                <i data-lucide="search" class="absolute left-3 md:left-4 top-2.5 md:top-4 text-blue-800 w-5 h-5 md:w-6 md:h-6"></i>
+            </div>
 
-  <script src=""></script>
+            <div class="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
+                <div class="text-left md:text-right">
+                    <p class="text-xl md:text-2xl font-black text-yellow-400 leading-none" id="recordCount">0</p>
+                    <p class="text-[8px] md:text-[9px] uppercase font-bold tracking-tighter opacity-80">Registros</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-2 bg-white/10 px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl border border-white/20 cursor-pointer hover:bg-white/20 transition-colors" title="Ocultar registros sin clave">
+                        <input type="checkbox" id="hideNoKeyFilter" class="w-4 h-4 md:w-4 md:h-4 accent-yellow-400 cursor-pointer">
+                        <span class="text-[10px] md:text-xs font-bold text-white uppercase tracking-tighter whitespace-nowrap">Ocultar sin clave</span>
+                    </label>
+                    <div class="flex items-center bg-white/10 p-1 rounded-xl md:rounded-2xl border border-white/20">
+                        <button id="viewGrid" onclick="changeView('grid')" class="p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all" title="Vista Cuadrícula">
+                            <i data-lucide="layout-grid" class="w-4 h-4 md:w-5 md:h-5"></i>
+                        </button>
+                        <button id="viewList" onclick="changeView('list')" class="hidden md:block p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all" title="Vista Lista">
+                            <i data-lucide="list" class="w-4 h-4 md:w-5 md:h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PANEL DE FILTROS COLAPSABLE -->
+    <section class="bg-white border-b border-slate-200 shadow-md no-print">
+        <div class="container mx-auto px-4 md:px-6">
+            <!-- Trigger del colapso -->
+            <button onclick="toggleFilters()" class="w-full py-3 flex items-center justify-between text-slate-500 hover:text-blue-600 transition-colors">
+                <div class="flex items-center gap-3 font-bold text-[10px] md:text-xs uppercase tracking-widest">
+                    <i data-lucide="filter" class="w-3.5 h-3.5 md:w-4 md:h-4"></i>
+                    <span>Filtros Específicos</span>
+                </div>
+                <i id="filterChevron" data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
+            </button>
+
+            <!-- Contenido que colapsa -->
+            <div id="filterContent">
+                <div class="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-6">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center w-full lg:w-auto bg-slate-100 rounded-xl md:rounded-2xl p-1 gap-1 border border-slate-200">
+                        <select id="fieldSelector" class="bg-transparent text-[10px] md:text-xs font-black text-slate-600 border-none focus:ring-0 py-2 pl-3 pr-8 uppercase cursor-pointer">
+                            <option value="all">Cualquier Campo</option>
+                            <option value="1">Nombre / Propietario</option>
+                            <option value="2">Dirección / Domicilio</option>
+                            <option value="0">Cuenta / Subcuenta</option>
+                            <option value="4">Clave Electrónica</option>
+                        </select>
+                        <div class="hidden sm:block w-px h-6 bg-slate-300"></div>
+                        <input type="text" id="fieldSearchInput" 
+                            placeholder="Escribir..." 
+                            class="bg-transparent text-xs md:text-sm font-bold text-slate-700 border-none focus:ring-0 py-2 px-3 w-full sm:w-48 md:w-64">
+                    </div>
+
+                    <select id="serviceFilter" class="w-full sm:w-auto text-[10px] md:text-xs bg-slate-50 border-slate-200 rounded-xl focus:ring-blue-500 py-2.5 pl-3 pr-10 font-black text-slate-700 uppercase tracking-tighter cursor-pointer">
+                        <option value="all">TODOS LOS SERVICIOS</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTENIDO -->
+    <main class="flex-grow container mx-auto px-4 md:px-6 py-6 md:py-10 no-print">
+        <div id="cardsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+            <div class="skeleton h-60 md:h-72 rounded-2xl md:rounded-3xl opacity-40"></div>
+            <div class="skeleton h-60 md:h-72 rounded-2xl md:rounded-3xl opacity-40"></div>
+            <div class="skeleton h-60 md:h-72 rounded-2xl md:rounded-3xl opacity-40"></div>
+            <div class="skeleton h-60 md:h-72 rounded-2xl md:rounded-3xl opacity-40"></div>
+        </div>
+
+        <div id="loader" class="h-24 md:h-32 flex items-center justify-center invisible">
+            <div class="animate-spin rounded-full h-8 w-8 md:h-10 md:w-10 border-4 border-blue-600 border-t-transparent shadow-lg"></div>
+        </div>
+    </main>
+
+    <!-- CAPTURA (OCULTA) -->
+    <div id="captureArea"></div>
+
+    <!-- IMPRESIÓN (OCULTA) -->
+    <div id="printArea" class="print-only"></div>
+
+    <!-- NOTIFICACIÓN -->
+    <div id="notification" class="fixed bottom-6 right-6 left-6 sm:left-auto bg-slate-900/95 backdrop-blur-md text-white px-6 md:px-8 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-2xl translate-y-40 transition-transform duration-500 flex items-center gap-4 md:gap-5 border border-white/10 z-[100]">
+        <div id="notificationIcon" class="bg-blue-500 p-1.5 md:p-2 rounded-xl md:rounded-2xl shadow-lg">
+            <i data-lucide="check" class="w-4 h-4 md:w-5 md:h-5 text-white"></i>
+        </div>
+        <div>
+            <p class="font-black text-xs md:text-sm uppercase tracking-tight" id="notificationHeader">Acción Exitosa</p>
+            <p class="text-[10px] md:text-xs text-slate-400 font-medium" id="notificationText">Operación completada</p>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let viewMode = localStorage.getItem('osm_view_mode') || 'grid';
+        let hideNoKey = localStorage.getItem('osm_hide_no_key') === 'true';
+        let itemsToShow = 24;
+        const INCREMENT = 24;
+
+        const searchInput = document.getElementById('searchInput');
+        const fieldSelector = document.getElementById('fieldSelector');
+        const fieldSearchInput = document.getElementById('fieldSearchInput');
+        const serviceFilter = document.getElementById('serviceFilter');
+        const hideNoKeyFilter = document.getElementById('hideNoKeyFilter');
+        const container = document.getElementById('cardsContainer');
+        const recordCount = document.getElementById('recordCount');
+        const loader = document.getElementById('loader');
+        const captureArea = document.getElementById('captureArea');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            hideNoKeyFilter.checked = hideNoKey;
+            setupIntersectionObserver();
+            updateViewUI();
+            fetchData();
+        });
+
+        // Toggle de filtros
+        function toggleFilters() {
+            const content = document.getElementById('filterContent');
+            const chevron = document.getElementById('filterChevron');
+            content.classList.toggle('open');
+            
+            if (content.classList.contains('open')) {
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch('resources/claves.json');
+                if (response.ok) {
+                    const json = await response.json();
+                    loadNewData(json.data || []);
+                } else {
+                    handleEmptyState("Cargue el archivo claves.json en la carpeta resources.");
+                }
+            } catch (e) {
+                handleEmptyState("No se encontró la base de datos de claves.");
+            }
+        }
+
+        function handleEmptyState(msg) {
+            container.innerHTML = `
+                <div class="col-span-full py-20 md:py-40 text-center flex flex-col items-center">
+                    <div class="bg-slate-200 p-4 md:p-6 rounded-full mb-4">
+                        <i data-lucide="database" class="w-8 h-8 md:w-12 md:h-12 text-slate-400"></i>
+                    </div>
+                    <p class="text-slate-500 font-bold text-sm md:text-base">${msg}</p>
+                </div>`;
+            lucide.createIcons();
+            recordCount.innerText = "0";
+        }
+
+        function changeView(mode) {
+            // En mobile, solo permitir grid
+            if (window.innerWidth < 768) {
+                mode = 'grid';
+            }
+            viewMode = mode;
+            localStorage.setItem('osm_view_mode', mode);
+            updateViewUI();
+            renderInitial();
+        }
+
+        function updateViewUI() {
+            document.getElementById('viewGrid').classList.toggle('active-view', viewMode === 'grid');
+            document.getElementById('viewList').classList.toggle('active-view', viewMode === 'list');
+            container.className = viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8" : "flex flex-col gap-3 md:gap-4";
+        }
+
+        function loadNewData(data) {
+            allData = data;
+            populateFilters();
+            applyAllFilters();
+        }
+
+        function populateFilters() {
+            const services = [...new Set(allData.map(row => row[7]).filter(Boolean))].sort();
+            serviceFilter.innerHTML = '<option value="all">TODOS LOS SERVICIOS</option>';
+            services.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s.toUpperCase();
+                serviceFilter.appendChild(opt);
+            });
+        }
+
+        function applyAllFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const fieldIdx = fieldSelector.value;
+            const fieldTerm = fieldSearchInput.value.toLowerCase();
+            const service = serviceFilter.value;
+            const hideNoKey = hideNoKeyFilter.checked;
+
+            filteredData = allData.filter(row => {
+                const matchesGlobal = searchTerm === '' || row.some(f => f?.toString().toLowerCase().includes(searchTerm));
+                let matchesField = true;
+                if (fieldTerm !== '') {
+                    matchesField = fieldIdx === 'all' ? row.some(f => f?.toString().toLowerCase().includes(fieldTerm)) : row[fieldIdx]?.toString().toLowerCase().includes(fieldTerm);
+                }
+                const matchesService = service === 'all' || row[7] === service;
+                const keyText = row[4]?.toString().trim().toUpperCase() || '';
+                const isSinClave = keyText.includes('SIN CLAVE') || keyText === '' || keyText === 'N/A';
+                const matchesHideNoKey = !hideNoKey || !isSinClave;
+                return matchesGlobal && matchesField && matchesService && matchesHideNoKey;
+            });
+
+            renderInitial();
+        }
+
+        [searchInput, fieldSearchInput, fieldSelector, serviceFilter].forEach(el => {
+            el.addEventListener('input', applyAllFilters);
+            el.addEventListener('change', applyAllFilters);
+        });
+
+        hideNoKeyFilter.addEventListener('change', (e) => {
+            localStorage.setItem('osm_hide_no_key', e.target.checked);
+            applyAllFilters();
+        });
+
+        function renderInitial() {
+            container.innerHTML = '';
+            recordCount.innerText = filteredData.length.toLocaleString();
+            if (filteredData.length === 0 && allData.length > 0) {
+                container.innerHTML = `<div class="col-span-full py-20 text-center"><p class="text-slate-400 font-bold text-sm">Sin coincidencias.</p></div>`;
+                return;
+            }
+            if (allData.length > 0) renderMore();
+        }
+
+        function renderMore() {
+            const start = container.children.length;
+            const end = Math.min(start + INCREMENT, filteredData.length);
+            for (let i = start; i < end; i++) {
+                container.appendChild(viewMode === 'grid' ? createCard(filteredData[i]) : createRow(filteredData[i]));
+            }
+            lucide.createIcons();
+            loader.classList.toggle('invisible', end >= filteredData.length);
+        }
+
+        function createCard(row) {
+            const [cod, nombre, dir, factura, clave, file, pag, servicio] = row;
+            const div = document.createElement('div');
+            div.className = "clave-card bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 overflow-hidden flex flex-col shadow-sm relative";
+            div.innerHTML = `
+                <div class="osm-blue px-4 md:px-6 py-2.5 md:py-3.5 text-white flex justify-between items-center">
+                    <span class="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-blue-100">${servicio || 'SANITARIO'}</span>
+                    <span class="text-[9px] md:text-[10px] bg-black/20 px-2 py-0.5 md:px-2.5 md:py-1 rounded-full font-bold">CTA: ${cod}</span>
+                </div>
+                <div class="p-4 md:p-6 flex-grow flex flex-col">
+                    <div class="flex-grow mb-4 md:mb-6">
+                        <h3 class="font-black text-slate-800 text-sm md:text-base leading-snug uppercase line-clamp-3 mb-2 md:mb-3">${nombre}</h3>
+                        <p class="text-slate-500 text-[9px] md:text-xs font-semibold italic line-clamp-3 leading-relaxed">${dir}</p>
+                    </div>
+                    <div class="bg-blue-50/50 rounded-xl md:rounded-2xl p-3 md:p-4 border border-blue-100 mb-4 md:mb-5 text-center">
+                        <span class="text-[8px] md:text-[9px] text-blue-400 uppercase font-black block mb-1">Clave de Pago</span>
+                        <span class="text-xl md:text-2xl font-mono font-black tracking-[0.15em] md:tracking-[0.2em] osm-text-blue">${clave}</span>
+                    </div>
+                    <div class="flex gap-2 mt-auto">
+                        <button onclick="shareWhatsApp('${encodeURIComponent(JSON.stringify(row))}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 md:py-2.5 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black transition-all flex items-center justify-center gap-1.5 md:gap-2 active:scale-95 touch-manipulation">
+                            <i data-lucide="send" class="w-3.5 h-3.5 md:w-4 md:h-4"></i> WHATSAPP
+                        </button>
+                        <button onclick="printCard('${encodeURIComponent(JSON.stringify(row))}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl transition-all flex items-center justify-center active:scale-95 touch-manipulation">
+                            <i data-lucide="printer" class="w-3.5 h-3.5 md:w-4 md:h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+        function createRow(row) {
+            const [cod, nombre, dir, factura, clave, file, pag, servicio] = row;
+            const div = document.createElement('div');
+            div.className = "clave-row bg-white rounded-xl md:rounded-2xl border border-slate-200 p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 shadow-sm";
+            div.innerHTML = `
+                <div class="flex-grow flex flex-col md:flex-row md:items-center gap-4 md:gap-10 overflow-hidden text-sm md:text-base">
+                    <div class="flex items-center gap-4 flex-grow md:w-1/3 overflow-hidden">
+                        <div class="flex-shrink-0 w-10 h-10 md:w-14 md:h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 border border-blue-100">
+                            <i data-lucide="user" class="w-5 h-5 md:w-7 md:h-7"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h3 class="font-black text-slate-800 uppercase truncate leading-tight mb-1">${nombre}</h3>
+                            <p class="text-slate-400 text-[10px] md:text-xs font-bold truncate italic">${dir}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-row items-center gap-4 md:gap-12">
+                        <div class="flex flex-col items-center md:items-start min-w-[80px]">
+                             <span class="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-1">Cuenta</span>
+                             <span class="font-bold text-slate-700">${cod}</span>
+                        </div>
+
+                        <div class="flex flex-col items-center md:items-start min-w-[100px]">
+                             <span class="text-[8px] md:text-[10px] font-black text-blue-400 uppercase tracking-tighter mb-1">Servicio</span>
+                             <span class="font-black text-blue-600 truncate max-w-[120px]">${servicio || 'SANITARIO'}</span>
+                        </div>
+                        
+                        <div class="flex flex-col items-center md:items-start bg-blue-50/50 px-4 md:px-6 py-2 rounded-xl border border-blue-100">
+                             <span class="text-[8px] md:text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Clave Electrónica</span>
+                             <span class="text-base md:text-xl font-mono font-black text-blue-900 tracking-widest">${clave}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-3 md:gap-4 flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-8">
+                    <button onclick="shareWhatsApp('${encodeURIComponent(JSON.stringify(row))}')" class="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors active:scale-95 touch-manipulation font-bold text-xs md:text-sm shadow-md shadow-green-200">
+                        <i data-lucide="send" class="w-4 h-4 md:w-5 md:h-5"></i>
+                        <span class="md:inline">Enviar</span>
+                    </button>
+                    <button onclick="printCard('${encodeURIComponent(JSON.stringify(row))}')" class="p-2.5 hover:bg-slate-100 text-slate-600 rounded-xl active:scale-95 touch-manipulation border border-slate-100">
+                        <i data-lucide="printer" class="w-4 h-4 md:w-5 md:h-5"></i>
+                    </button>
+                </div>
+            `;
+            return div;
+        }
+
+        async function shareWhatsApp(encodedRow) {
+            const row = JSON.parse(decodeURIComponent(encodedRow));
+            captureArea.innerHTML = getCardHtml(row);
+
+            try {
+                // Esperamos un instante para asegurar el renderizado
+                await new Promise(r => setTimeout(r, 100));
+                const canvas = await html2canvas(captureArea, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+                canvas.toBlob(async (blob) => {
+                    const item = new ClipboardItem({ "image/png": blob });
+                    await navigator.clipboard.write([item]);
+                    showNotification("WhatsApp", "Imagen copiada. Pégala en el chat.");
+                });
+            } catch (err) {
+                showNotification("Error", "Error al generar imagen");
+            }
+        }
+
+        function getCardHtml(row) {
+            const [cod, nombre, dir, factura, clave, file, pag, servicio] = row;
+            return `
+                <div style="padding: 40px; background: white; border-radius: 24px; border: 1px solid #e2e8f0; font-family: 'Inter', sans-serif; width: 500px; color: #1e293b; box-sizing: border-box;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 3px solid #004a99; padding-bottom:20px; margin-bottom:20px;">
+                        <img src="resources/logo-osm.png" style="height:60px;" alt="Logo">
+                        <div style="text-align:right">
+                            <h2 style="margin:0; font-size:18px; color:#004a99; font-weight:900; line-height:1;">OBRAS SANITARIAS MERCEDES</h2>
+                            <p style="margin:5px 0 0 0; font-size:9px; font-weight:800; color:#64748b; letter-spacing:1px; text-transform:uppercase;">Villa Mercedes - San Luis</p>
+                        </div>
+                    </div>
+                    <div style="font-size:14px; line-height:1.7;">
+                        <p style="margin: 4px 0;"><strong>TITULAR:</strong> ${nombre.toUpperCase()}</p>
+                        <p style="margin: 4px 0;"><strong>DOMICILIO:</strong> ${dir.toUpperCase()}</p>
+                        <p style="margin: 4px 0;"><strong>CUENTA / SUBCUENTA:</strong> ${cod}</p>
+                        <p style="margin: 4px 0;"><strong>SERVICIO:</strong> ${servicio || 'S/D'}</p>
+                    </div>
+                    <div style="background-color: #f8fafc; border: 2px solid #004a99; padding: 25px; border-radius: 12px; text-align: center; margin: 25px 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <span style="display:block; font-size:11px; font-weight:900; color:#004a99; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; width: 100%;">Clave de Pago Electrónico</span>
+                        <span style="font-size:36px; font-weight:900; letter-spacing:10px; font-family:monospace; color:#003366; width: 100%; text-align: center;">${clave}</span>
+                    </div>
+                    <div style="font-size:11px; padding:15px; border:1px solid #e2e8f0; border-radius:10px; background:#fdfdfd; margin-top: 15px; line-height: 1.4;">
+                        <p style="margin:0 0 8px 0; color:#004a99; font-size:10px;"><strong>INSTRUCCIONES DE PAGO:</strong></p>
+                        <p style="margin:3px 0;">• <strong>Banelco:</strong> Buscar servicio "Obras Sanit V Mercedes"</p>
+                        <p style="margin:3px 0;">• <strong>Red Link:</strong> Buscar servicio "Obras Sanitarias Mercedes San Luis"</p>
+                    </div>
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #64748b; text-align: center; line-height: 1.5;">
+                        <p style="margin:2px 0; font-weight:bold;">Balcarce 416 - Villa Mercedes</p>
+                        <p style="margin:2px 0;">Comercial (Solo WhatsApp Texto): 2657636535</p>
+                        <p style="margin:2px 0;">Reclamos (WhatsApp/Llamadas): 2657587557</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function printCard(encodedRow) {
+            const row = JSON.parse(decodeURIComponent(encodedRow));
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = `<div class="card-print">${getCardHtml(row)}</div>`;
+            
+            // Aseguramos que la imagen se cargue antes de imprimir
+            const img = printArea.querySelector('img');
+            if (img.complete) {
+                window.print();
+            } else {
+                img.onload = () => window.print();
+                img.onerror = () => window.print();
+            }
+        }
+
+        function showNotification(header, text) {
+            const notif = document.getElementById('notification');
+            document.getElementById('notificationHeader').innerText = header.toUpperCase();
+            document.getElementById('notificationText').innerText = text;
+            notif.classList.remove('translate-y-40');
+            setTimeout(() => notif.classList.add('translate-y-40'), 4500);
+        }
+
+        function setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && filteredData.length > container.children.length) renderMore();
+            }, { threshold: 0.1 });
+            observer.observe(loader);
+        }
+    </script>
 </body>
-
 </html>
